@@ -9,10 +9,12 @@
     "preview": "vite preview --host 0.0.0.0",
     "cap:sync": "npm run build && npx cap sync android",
     "android:debug": "npm run cap:sync && cd android && ./gradlew assembleDebug",
+    "android:bundle": "npm run cap:sync && cd android && ./gradlew bundleRelease",
     "android:release": "npm run cap:sync && cd android && ./gradlew assembleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^7.1.0",
+    "@capacitor/app": "^7.1.2",
     "@capacitor/core": "^7.1.0",
     "@capacitor/haptics": "^7.0.1",
     "@capacitor/preferences": "^7.0.1",

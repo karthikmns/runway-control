@@ -1,4 +1,5 @@
 import './style.css';
+import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { audio } from './audio';
@@ -556,6 +557,53 @@ async function bootstrap() {
       dom.btnSpeed.textContent = `${spd}x`;
     }
   });
+
+  // Native Android hardware Back button & background auto-pause (Play Store UX compliance)
+  if (Capacitor.isNativePlatform()) {
+    let lastBackPress = 0;
+
+    void App.addListener('appStateChange', ({ isActive }) => {
+      if (
+        !isActive &&
+        engine.hasStarted &&
+        !engine.isPaused &&
+        !engine.isGameOver &&
+        !engine.isStageCleared &&
+        !engine.isPerkDraftOpen
+      ) {
+        engine.isPaused = true;
+        dom.btnPause.textContent = '▶';
+        engine.showBanner('⏸ SHIFT PAUSED', 'info');
+      }
+    });
+
+    void App.addListener('backButton', () => {
+      if (dom.hubModal.classList.contains('active')) {
+        dom.btnCloseHub.click();
+        return;
+      }
+      if (dom.clearModal.classList.contains('active') || dom.gameoverModal.classList.contains('active')) {
+        openHub('stages');
+        return;
+      }
+      if (dom.perkModal.classList.contains('active')) {
+        return;
+      }
+      if (engine.hasStarted && !engine.isPaused && !engine.isGameOver && !engine.isStageCleared) {
+        engine.isPaused = true;
+        dom.btnPause.textContent = '▶';
+        openHub('stages');
+        return;
+      }
+      const now = Date.now();
+      if (now - lastBackPress < 1800) {
+        void App.exitApp();
+      } else {
+        lastBackPress = now;
+        engine.showBanner('Press Back again to exit Runway Control', 'info');
+      }
+    });
+  }
 
   // Load initial unlocked stage or Stage 1
   engine.loadStage(1, false);
