@@ -1,0 +1,24 @@
+{
+  "name": "Runway Control — Super ATC",
+  "short_name": "Runway Control",
+  "description": "12-Stage Air Traffic Control game with holding orbits, tactical slow-mo, Mayday fire rescue, rogue drones & UFOs, tower upgrades, and Daily Ops.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#071b2c",
+  "theme_color": "#071b2c",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

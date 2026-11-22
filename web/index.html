@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#071b2c" />
+  <meta name="description" content="Runway Control — 12-Stage Air Traffic Control Android & Web game featuring Holding Orbits, Tactical Chrono Slow-Mo, Mayday Fire Rescue, Rogue Drones & UFOs, Tower Upgrades, and Daily Ops." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <title>Runway Control — Super ATC</title>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Compact Aviation Telemetry HUD -->
+    <header class="hud-bar">
+      <div class="hud-group">
+        <button id="btn-stages" type="button" class="hud-btn hud-btn-primary" title="Command Hub: Stages, Daily Ops & Upgrades">
+          <span class="btn-ico">🗺️</span>
+          <span id="stage-label">Stage 1</span>
+          <span class="caret">▾</span>
+        </button>
+
+        <div class="stat-chip">
+          <span class="stat-k">LAND</span>
+          <strong id="landings-val" class="stat-v">0/10</strong>
+        </div>
+
+        <div id="launches-wrap" class="stat-chip" style="display:none;">
+          <span class="stat-k">DEP</span>
+          <strong id="launches-val" class="stat-v">0/6</strong>
+        </div>
+
+        <div class="stat-chip">
+          <span class="stat-k">SCORE</span>
+          <strong id="score-val" class="stat-v">0</strong>
+        </div>
+
+        <span id="combo-pill" class="combo-pill" style="display:none;">2x</span>
+
+        <button id="btn-hangar" type="button" class="hud-btn credits-btn" title="Tower Upgrades Hangar">
+          <span>🪙</span>
+          <strong id="credits-val" class="stat-v">120</strong>
+        </button>
+      </div>
+
+      <div class="hud-group">
+        <span id="tcas-pill" class="shield-pill" style="display:none;" title="Auto-TCAS Collision Shields Ready">
+          🛡️ <strong id="tcas-val">1</strong>
+        </span>
+
+        <div id="lives-box" class="lives-row" aria-label="Lives">
+          <svg class="life-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <svg class="life-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <svg class="life-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </div>
+
+        <button id="btn-speed" type="button" class="hud-btn" title="Simulation Speed (1x / 1.5x / 2x)">1x</button>
+        <button id="btn-sound" type="button" class="hud-btn" title="Toggle Sound">🔊</button>
+        <button id="btn-pause" type="button" class="hud-btn" title="Pause">⏸</button>
+      </div>
+    </header>
+
+    <!-- Full-Viewport Playable Airspace Canvas -->
+    <main id="stage-wrap" class="stage-wrap">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- Live Tactical Event Banner -->
+      <div id="event-banner" class="event-banner"></div>
+
+      <!-- Floating Tactical Action Dock (Thumb-Friendly Android Controls) -->
+      <div class="tactical-dock">
+        <button id="btn-slowmo" type="button" class="tac-btn tac-slowmo" title="Chrono Radar Slow-Mo (Space)">
+          <span class="tac-fill" id="slowmo-fill"></span>
+          <span class="tac-content">
+            <span>⏱️</span>
+            <span id="slowmo-label">SLOW</span>
+          </span>
+        </button>
+
+        <button id="btn-orbit" type="button" class="tac-btn tac-orbit" title="Lock Selected Plane into Holding Orbit (Double-Tap or O)">
+          <span class="tac-content">
+            <span>⟳</span>
+            <span id="orbit-label">ORBIT</span>
+          </span>
+        </button>
+
+        <div id="emp-chip" class="emp-chip" title="Tap any Rogue Drone or UFO on radar to fire Tower EMP Jammer">
+          <span>⚡</span>
+          <span id="emp-label">EMP READY</span>
+        </div>
+      </div>
+
+      <!-- Stage Intro / Briefing Modal -->
+      <div id="intro-modal" class="modal-backdrop active">
+        <div class="modal-card">
+          <div class="intro-head">
+            <span id="intro-badge" class="diff-badge diff-TRAINING">STAGE 1 • TRAINING</span>
+            <span id="intro-credits" class="credits-inline">🪙 120</span>
+          </div>
+          <h1 id="intro-title" class="modal-title">Coral Bay</h1>
+          <div id="intro-sub" class="modal-sub">1 Coastal Runway</div>
+          <div id="intro-tags" class="feature-tags"></div>
+          <div id="intro-tip" class="tip-box"></div>
+          <div class="btn-stack">
+            <button id="btn-start-stage" type="button" class="primary-btn">Take Control — Stage 1</button>
+            <div class="btn-row">
+              <button id="btn-open-map" type="button" class="secondary-btn">🗺️ Stages & Daily</button>
+              <button id="btn-open-upgrades" type="button" class="secondary-btn">🛠️ Upgrades</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Command Hub Modal (Stages + Daily Ops + Tower Upgrades + Career Stats) -->
+      <div id="hub-modal" class="modal-backdrop">
+        <div class="modal-card wide">
+          <div class="hub-header">
+            <div>
+              <div class="hub-title">Runway Control — Super ATC</div>
+              <div id="total-stars-label" class="hub-sub">★ 0 / 36 Stars • 🪙 120 Credits</div>
+            </div>
+            <button id="btn-close-hub" type="button" class="secondary-btn icon-close">✕</button>
+          </div>
+
+          <div class="tab-bar" role="tablist">
+            <button id="tab-stages" type="button" class="tab-btn active" data-tab="stages">🗺️ Missions</button>
+            <button id="tab-upgrades" type="button" class="tab-btn" data-tab="upgrades">🛠️ Upgrades</button>
+            <button id="tab-stats" type="button" class="tab-btn" data-tab="stats">📊 Flight Log</button>
+          </div>
+
+          <!-- Tab 1: Stages + Daily Ops -->
+          <div id="panel-stages" class="tab-panel active">
+            <div id="daily-card" class="daily-card">
+              <div class="daily-left">
+                <div class="daily-kicker">🔥 DAILY OPS • 2X CREDITS</div>
+                <div id="daily-title" class="daily-name">Daily Ops</div>
+                <div id="daily-mutators" class="daily-mutators"></div>
+              </div>
+              <button id="btn-play-daily" type="button" class="daily-btn">Play Daily</button>
+            </div>
+
+            <div class="section-row">
+              <span class="section-label">12-STAGE CAMPAIGN</span>
+              <button id="btn-unlock-all" type="button" class="mini-btn">🔓 Unlock All</button>
+            </div>
+            <div id="stage-grid" class="stage-grid"></div>
+          </div>
+
+          <!-- Tab 2: Tower Upgrades Hangar -->
+          <div id="panel-upgrades" class="tab-panel">
+            <div class="upgrade-banner">
+              <span>Spend 🪙 ATC Credits earned from landings, Maydays & EMP hits on permanent tower gear.</span>
+              <strong id="upgrade-credits-val">🪙 120</strong>
+            </div>
+            <div id="upgrades-list" class="upgrades-list"></div>
+          </div>
+
+          <!-- Tab 3: Career Flight Log & Settings -->
+          <div id="panel-stats" class="tab-panel">
+            <div id="stats-grid" class="stats-grid"></div>
+            <div class="settings-row">
+              <span>Haptic Vibration Feedback</span>
+              <button id="btn-toggle-haptics" type="button" class="mini-btn">ON</button>
+            </div>
+            <div class="controls-guide">
+              <strong>Pro ATC Controls</strong>
+              <ul>
+                <li><strong>Drag Plane → Runway:</strong> Lock approach path until line glows green.</li>
+                <li><strong>Double-Tap Plane (or Right-Click / Orbit btn):</strong> Lock into circular Holding Orbit.</li>
+                <li><strong>Tap Drone / UFO:</strong> Fire Control Tower EMP Jammer for bonus credits.</li>
+                <li><strong>Tap LAUNCH Jet:</strong> Clear outbound flights when runway is free.</li>
+                <li><strong>⏱️ Slow-Mo (Space):</strong> Activate 0.35x Chrono Radar during peak traffic.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mid-Run Tactical Perk Draft Modal -->
+      <div id="perk-modal" class="modal-backdrop">
+        <div class="modal-card wide">
+          <div class="perk-header">
+            <span class="diff-badge diff-DAILY">MID-SHIFT SUPPLY DROP</span>
+            <h2 class="modal-title" style="margin:6px 0 2px;">Choose 1 Tactical Boost</h2>
+            <div class="modal-sub" style="margin-bottom:10px;">Active for the rest of this shift</div>
+          </div>
+          <div id="perk-grid" class="perk-grid"></div>
+        </div>
+      </div>
+
+      <!-- Stage Clear Modal -->
+      <div id="clear-modal" class="modal-backdrop">
+        <div class="modal-card">
+          <div id="clear-stars" class="clear-stars">★★★</div>
+          <h2 id="clear-title" class="modal-title">STAGE CLEARED!</h2>
+          <div id="clear-sub" class="modal-sub">Airspace secured.</div>
+
+          <div class="summary-grid">
+            <div class="summary-box">
+              <span class="sum-k">SCORE</span>
+              <strong id="clear-score" class="sum-v">0</strong>
+            </div>
+            <div class="summary-box">
+              <span class="sum-k">LANDINGS</span>
+              <strong id="clear-landings" class="sum-v">0</strong>
+            </div>
+            <div class="summary-box">
+              <span class="sum-k">CREDITS</span>
+              <strong id="clear-credits" class="sum-v credit-txt">+0 🪙</strong>
+            </div>
+            <div class="summary-box">
+              <span class="sum-k">SAVES / EMP</span>
+              <strong id="clear-special" class="sum-v">0 / 0</strong>
+            </div>
+          </div>
+
+          <div class="btn-stack">
+            <button id="btn-next-stage" type="button" class="primary-btn">Next Stage →</button>
+            <div class="btn-row">
+              <button id="btn-endless" type="button" class="secondary-btn">∞ Endless Rush</button>
+              <button id="btn-clear-upgrades" type="button" class="secondary-btn">🛠️ Upgrades</button>
+            </div>
+            <button id="btn-replay-clear" type="button" class="secondary-btn">Replay Stage</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div id="gameover-modal" class="modal-backdrop">
+        <div class="modal-card">
+          <div class="diff-badge diff-SUPER" style="margin-bottom:6px;">INCIDENT REPORT</div>
+          <h2 class="modal-title">Airspace Closed</h2>
+          <div id="over-reason" class="modal-sub">Mid-air collision</div>
+
+          <div class="summary-grid">
+            <div class="summary-box">
+              <span class="sum-k">SCORE</span>
+              <strong id="over-score" class="sum-v">0</strong>
+            </div>
+            <div class="summary-box">
+              <span class="sum-k">LANDED</span>
+              <strong id="over-landings" class="sum-v">0</strong>
+            </div>
+            <div class="summary-box">
+              <span class="sum-k">BANKED</span>
+              <strong id="over-credits" class="sum-v credit-txt">+0 🪙</strong>
+            </div>
+            <div class="summary-box">
+              <span class="sum-k">BEST STREAK</span>
+              <strong id="over-streak" class="sum-v">0</strong>
+            </div>
+          </div>
+
+          <div class="btn-stack">
+            <button id="btn-retry" type="button" class="primary-btn">Retry Shift</button>
+            <div class="btn-row">
+              <button id="btn-over-upgrades" type="button" class="secondary-btn">🛠️ Upgrades</button>
+              <button id="btn-over-map" type="button" class="secondary-btn">🗺️ Stages</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Live ATC Radio Strip -->
+    <footer class="bottom-bar">
+      <div class="atc-line">
+        <span class="tower-tag">TWR</span>
+        <span id="atc-message">Tower online.</span>
+      </div>
+      <div class="bottom-meta">
+        <span id="active-count">0 active</span>
+        <span>•</span>
+        <span>Best <strong id="best-val">0</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="../src/main.ts"></script>
+</body>
+</html>
