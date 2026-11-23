@@ -29,15 +29,18 @@ jobs:
         run: npm run cap:sync
 
       - name: Decode Upload Keystore from GitHub Secrets
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "Error: ANDROID_KEYSTORE_BASE64 secret is not configured."
+            exit 1
+          fi
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload-keystore.jks"
 
       - name: Build Signed Android App Bundle (.aab)
         env:
-          RELEASE_KEYSTORE_PATH: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && format('{0}/upload-keystore.jks', runner.temp) || '' }}
+          RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/upload-keystore.jks
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -45,9 +48,11 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
+          jarsigner -verify app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload Play Store AAB Artifact
         uses: actions/upload-artifact@v4
         with:
           name: RunwayControl-play-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
