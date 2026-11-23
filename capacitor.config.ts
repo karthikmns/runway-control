@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.karthikmns.runwaycontrol',
+  appId: 'com.runway_control',
   appName: 'Runway Control',
   webDir: 'dist',
   backgroundColor: '#071b2c',

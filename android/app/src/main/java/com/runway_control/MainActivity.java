@@ -1,4 +1,4 @@
-package com.karthikmns.runwaycontrol;
+package com.runway_control;
 
 import com.getcapacitor.BridgeActivity;
 
