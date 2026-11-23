@@ -180,6 +180,34 @@ export interface SaveData {
   stats: CareerStats;
 }
 
+export interface FlightStripItem {
+  id: string;
+  name: string;
+  padColor: ZoneColor;
+  state: string;
+  isVip: boolean;
+  isMayday: boolean;
+  lowFuel: boolean;
+  fuelSec: number;
+  fuelRatio: number;
+  danger: boolean;
+  lockedZoneName: string | null;
+  selected: boolean;
+}
+
+export interface OutboundStripItem {
+  id: string;
+  zoneName: string;
+  patienceSec: number;
+  patienceRatio: number;
+}
+
+export interface HazardStripItem {
+  index: number;
+  kind: 'drone' | 'ufo';
+  lifeSec: number;
+}
+
 export interface HudSnapshot {
   stage: StageDef;
   landings: number;
@@ -207,6 +235,9 @@ export interface HudSnapshot {
   selectedPlaneOrbiting: boolean;
   activeHazards: number;
   activeMaydays: number;
+  flightStrips: FlightStripItem[];
+  outboundStrips: OutboundStripItem[];
+  hazardStrips: HazardStripItem[];
 }
 
 export interface RunSummary {

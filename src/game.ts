@@ -359,6 +359,67 @@ export class RunwayGameEngine {
     return true;
   }
 
+  selectPlaneById(id: string) {
+    const target = this.aircraft.find((p) => p.id === id) ?? null;
+    if (!target) return;
+    audio.init();
+    this.selectedPlane = target;
+    audio.playSelect();
+    this.hudDirty = true;
+  }
+
+  toggleOrbitById(id: string) {
+    if (!this.hasStarted || this.isPaused || this.isGameOver || this.isStageCleared) return;
+    const target = this.aircraft.find((p) => p.id === id);
+    if (!target || target.state === 'landing' || target.state === 'foam_hold') return;
+    audio.init();
+    this.selectedPlane = target;
+    if (target.state === 'orbiting') {
+      target.state = 'cruising';
+      this.setATC(`${target.id} exiting holding orbit.`);
+    } else {
+      target.enterOrbit(this.worldW, this.worldH);
+      audio.playOrbitLock();
+      haptics.orbit();
+      this.particles.spawnFloatingText(target.x, target.y - 22, '⟳ ORBIT', '#38bdf8');
+      this.setATC(`${target.id} holding in circular orbit.`);
+    }
+    this.hudDirty = true;
+  }
+
+  launchOutboundById(id: string) {
+    if (!this.hasStarted || this.isPaused || this.isGameOver || this.isStageCleared) return;
+    const dep = this.outbounds.find((o) => o.id === id && o.state === 'waiting');
+    if (!dep) return;
+    audio.init();
+    const z = this.zones.find((zn) => zn.def.id === dep.zoneId);
+    if (!z) return;
+    if (this.isZoneBlocked(z)) {
+      audio.playMismatch();
+      this.setATC(`${dep.id} hold short — RWY ${z.name} busy!`);
+      this.particles.spawnFloatingText(dep.x, dep.y - 24, 'RWY BUSY!', '#f59e0b');
+    } else {
+      dep.launch(z);
+      this.launches += 1;
+      const pts = Math.round(140 * this.runScoreMult);
+      this.score += pts;
+      this.runCredits += this.stage.isDaily ? 16 : 8;
+      audio.playLaunch();
+      haptics.lock();
+      this.particles.spawnFloatingText(dep.x, dep.y - 24, `LAUNCH +${pts}`, '#38bdf8');
+      this.setATC(`${dep.id} cleared for takeoff RWY ${z.name}!`);
+      this.hudDirty = true;
+    }
+  }
+
+  zapHazardByIndex(index: number) {
+    if (!this.hasStarted || this.isPaused || this.isGameOver || this.isStageCleared) return;
+    const h = this.hazards[index];
+    if (!h || !h.alive) return;
+    audio.init();
+    this.tryZapHazard({ x: h.x, y: h.y }, 10);
+  }
+
   applyTacticalPerk(perkId: TacticalPerkId) {
     this.isPerkDraftOpen = false;
     audio.playUpgradeBuy();
@@ -1230,6 +1291,46 @@ export class RunwayGameEngine {
       selectedPlaneOrbiting: this.selectedPlane?.state === 'orbiting',
       activeHazards: this.hazards.length,
       activeMaydays: this.aircraft.filter((p) => p.isMayday).length,
+      flightStrips: this.aircraft
+        .map((p) => {
+          const z = p.lockedZoneId ? this.zones.find((zn) => zn.def.id === p.lockedZoneId) : null;
+          return {
+            id: p.id,
+            name: p.spec.name,
+            padColor: p.spec.padColor,
+            state: p.state,
+            isVip: p.isVip,
+            isMayday: p.isMayday,
+            lowFuel: p.lowFuel,
+            fuelSec: p.lowFuel ? Math.max(0, Math.ceil(p.fuel)) : 999,
+            fuelRatio: p.lowFuel ? Math.max(0, Math.min(1, p.fuel / p.maxFuel)) : 1,
+            danger: p.dangerWarning,
+            lockedZoneName: z ? z.name : null,
+            selected: this.selectedPlane === p,
+          };
+        })
+        .sort((a, b) => {
+          const prio = (x: typeof a) =>
+            (x.danger ? 1000 : 0) + (x.isMayday ? 500 : 0) + (x.lowFuel ? 250 - x.fuelSec : 0) + (x.isVip ? 80 : 0);
+          return prio(b) - prio(a);
+        }),
+      outboundStrips: this.outbounds
+        .filter((o) => o.state === 'waiting')
+        .map((o) => {
+          const z = this.zones.find((zn) => zn.def.id === o.zoneId);
+          return {
+            id: o.id,
+            zoneName: z ? z.name : 'RWY',
+            patienceSec: Math.max(0, Math.ceil(o.patience)),
+            patienceRatio: Math.max(0, Math.min(1, o.patience / o.maxPatience)),
+          };
+        }),
+      hazardStrips: this.hazards
+        .map((h, index) => ({
+          index,
+          kind: h.kind,
+          lifeSec: Math.max(0, Math.ceil(h.life)),
+        })),
     });
   }
 

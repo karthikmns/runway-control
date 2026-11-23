@@ -41,6 +41,7 @@ function getFeatureBadges(stage: StageDef): string[] {
 
 async function bootstrap() {
   if (Capacitor.isNativePlatform()) {
+    document.body.classList.add('native-app');
     try {
       await StatusBar.setStyle({ style: Style.Dark });
       await StatusBar.hide();
@@ -83,6 +84,11 @@ async function bootstrap() {
     btnSpeed: $<HTMLButtonElement>('btn-speed'),
     btnSound: $<HTMLButtonElement>('btn-sound'),
     btnPause: $<HTMLButtonElement>('btn-pause'),
+    btnStrips: $<HTMLButtonElement>('btn-strips'),
+    btnFullscreen: $<HTMLButtonElement>('btn-fullscreen'),
+    desktopSidebar: $<HTMLElement>('desktop-sidebar'),
+    sideCount: $<HTMLElement>('side-count'),
+    stripsContainer: $<HTMLElement>('strips-container'),
     btnSlowmo: $<HTMLButtonElement>('btn-slowmo'),
     slowmoFill: $<HTMLElement>('slowmo-fill'),
     slowmoLabel: $<HTMLElement>('slowmo-label'),
@@ -380,6 +386,128 @@ async function bootstrap() {
       dom.empChip.className = 'emp-chip';
       dom.empLabel.textContent = 'EMP READY';
     }
+
+    // Desktop Flight Strips Sidebar (only rendered when visible on desktop >= 980px)
+    if (
+      !Capacitor.isNativePlatform() &&
+      window.innerWidth >= 980 &&
+      !dom.desktopSidebar.classList.contains('collapsed')
+    ) {
+      const totalItems =
+        hud.flightStrips.length + hud.outboundStrips.length + hud.hazardStrips.length;
+      dom.sideCount.textContent = `${hud.activeFlights} ACTIVE`;
+
+      if (totalItems === 0) {
+        dom.stripsContainer.innerHTML =
+          '<div class="strip-empty">Radar clear — awaiting inbound traffic.</div>';
+      } else {
+        const frag = document.createDocumentFragment();
+
+        // 1. Active Intruders (Drones / UFOs)
+        for (const hz of hud.hazardStrips) {
+          const el = document.createElement('div');
+          el.className = 'flight-strip strip-hazard';
+          el.innerHTML = `
+            <div class="strip-row">
+              <span class="strip-id">${hz.kind === 'ufo' ? '🛸 UFO' : '🤖 DRONE'}</span>
+              <button type="button" class="strip-act-btn">${
+                hud.empCooldownRatio > 0.01 ? 'COOLING' : '⚡ EMP'
+              }</button>
+            </div>
+            <div class="strip-sub">Hostile airspace intruder • ${hz.lifeSec}s</div>
+          `;
+          el.querySelector('button')?.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            engine.zapHazardByIndex(hz.index);
+          });
+          frag.appendChild(el);
+        }
+
+        // 2. Waiting Outbound Departures
+        for (const dep of hud.outboundStrips) {
+          const el = document.createElement('div');
+          el.className = 'flight-strip strip-outbound';
+          el.innerHTML = `
+            <div class="strip-row">
+              <span class="strip-id">🛫 ${dep.id}</span>
+              <button type="button" class="strip-act-btn">LAUNCH</button>
+            </div>
+            <div class="strip-row">
+              <span class="strip-sub">Hold short RWY ${dep.zoneName}</span>
+              <span class="strip-pill ${dep.patienceRatio < 0.3 ? 'danger' : 'orbit'}">${dep.patienceSec}s</span>
+            </div>
+          `;
+          el.querySelector('button')?.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            engine.launchOutboundById(dep.id);
+          });
+          frag.appendChild(el);
+        }
+
+        // 3. Inbound Aircraft Strips
+        for (const fl of hud.flightStrips) {
+          const el = document.createElement('div');
+          el.className = `flight-strip color-${fl.padColor}${fl.selected ? ' selected' : ''}${
+            fl.danger || fl.isMayday ? ' strip-danger' : ''
+          }`;
+
+          let pillCls = '';
+          let pillText = 'CRUISE';
+          if (fl.danger) {
+            pillCls = 'danger';
+            pillText = 'TCAS!';
+          } else if (fl.isMayday) {
+            pillCls = 'danger';
+            pillText = `🔥 ${fl.fuelSec}s`;
+          } else if (fl.lowFuel) {
+            pillCls = fl.fuelSec < 9 ? 'danger' : 'warn';
+            pillText = `⛽ ${fl.fuelSec}s`;
+          } else if (fl.state === 'orbiting') {
+            pillCls = 'orbit';
+            pillText = '⟳ ORBIT';
+          } else if (fl.state === 'approaching' || fl.state === 'landing') {
+            pillCls = 'final';
+            pillText = fl.lockedZoneName ? `FINAL ${fl.lockedZoneName}` : 'FINAL';
+          } else if (fl.lockedZoneName) {
+            pillCls = 'final';
+            pillText = `→ ${fl.lockedZoneName}`;
+          }
+
+          const fuelBar = fl.lowFuel
+            ? `<div class="strip-bar"><div class="strip-bar-fill" style="width:${Math.round(
+                fl.fuelRatio * 100
+              )}%;background:${fl.fuelRatio < 0.3 || fl.isMayday ? '#ef4444' : '#f59e0b'};"></div></div>`
+            : '';
+
+          el.innerHTML = `
+            <div class="strip-row">
+              <span class="strip-id">${fl.isVip ? '★ ' : ''}${fl.id}</span>
+              <span class="strip-pill ${pillCls}">${pillText}</span>
+            </div>
+            <div class="strip-row">
+              <span class="strip-sub">${fl.name}</span>
+              ${
+                fl.state !== 'landing' && fl.state !== 'foam_hold'
+                  ? `<button type="button" class="strip-act-btn">${
+                      fl.state === 'orbiting' ? 'Resume' : '⟳ Orbit'
+                    }</button>`
+                  : ''
+              }
+            </div>
+            ${fuelBar}
+          `;
+          el.addEventListener('click', () => engine.selectPlaneById(fl.id));
+          el.querySelector('button')?.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            engine.toggleOrbitById(fl.id);
+          });
+          frag.appendChild(el);
+        }
+
+        dom.stripsContainer.innerHTML = '';
+        dom.stripsContainer.appendChild(frag);
+      }
+    }
   };
 
   const showPerkDraft = (perks: TacticalPerkDef[]) => {
@@ -541,6 +669,21 @@ async function bootstrap() {
     engine.orbitSelectedOrNearest();
   });
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
+
+  dom.btnStrips.addEventListener('click', () => {
+    dom.desktopSidebar.classList.toggle('collapsed');
+    engine.resize();
+  });
+
+  dom.btnFullscreen.addEventListener('click', toggleFullscreen);
+
   // Desktop keyboard shortcuts
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
@@ -555,6 +698,8 @@ async function bootstrap() {
     } else if (e.key === 's' || e.key === 'S') {
       const spd = engine.toggleSpeed();
       dom.btnSpeed.textContent = `${spd}x`;
+    } else if (e.key === 'f' || e.key === 'F') {
+      toggleFullscreen();
     }
   });
 

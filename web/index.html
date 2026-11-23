@@ -57,13 +57,16 @@
           <svg class="life-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
         </div>
 
-        <button id="btn-speed" type="button" class="hud-btn" title="Simulation Speed (1x / 1.5x / 2x)">1x</button>
+        <button id="btn-speed" type="button" class="hud-btn" title="Simulation Speed (S)">1x</button>
         <button id="btn-sound" type="button" class="hud-btn" title="Toggle Sound">🔊</button>
-        <button id="btn-pause" type="button" class="hud-btn" title="Pause">⏸</button>
+        <button id="btn-pause" type="button" class="hud-btn" title="Pause (P)">⏸</button>
+        <button id="btn-strips" type="button" class="hud-btn desktop-only" title="Toggle Flight Strips Sidebar">📋 Strips</button>
+        <button id="btn-fullscreen" type="button" class="hud-btn desktop-only" title="Toggle Fullscreen (F)">⛶</button>
       </div>
     </header>
 
-    <!-- Full-Viewport Playable Airspace Canvas -->
+    <!-- Main Workspace: Full-Viewport Canvas + Desktop Flight Strips Sidebar -->
+    <div class="workspace-grid">
     <main id="stage-wrap" class="stage-wrap">
       <canvas id="gameCanvas"></canvas>
 
@@ -268,6 +271,35 @@
         </div>
       </div>
     </main>
+
+    <!-- Desktop ATC Flight Strips Sidebar (hidden on mobile & native Android) -->
+    <aside id="desktop-sidebar" class="desktop-sidebar" aria-label="ATC Flight Strips">
+      <div class="side-head">
+        <span class="side-title">FLIGHT STRIPS</span>
+        <span id="side-count" class="side-badge">0 ACTIVE</span>
+      </div>
+
+      <div id="strips-container" class="strips-container">
+        <div class="strip-empty">Radar clear — awaiting inbound traffic.</div>
+      </div>
+
+      <div class="side-footer">
+        <div class="hotkey-grid">
+          <div class="hk"><kbd>Drag</kbd><span>Route</span></div>
+          <div class="hk"><kbd>R-Click</kbd><span>Orbit</span></div>
+          <div class="hk"><kbd>Space</kbd><span>Slow-Mo</span></div>
+          <div class="hk"><kbd>S</kbd><span>Speed</span></div>
+          <div class="hk"><kbd>P</kbd><span>Pause</span></div>
+          <div class="hk"><kbd>F</kbd><span>Fullscreen</span></div>
+        </div>
+        <div class="side-links">
+          <a href="./RunwayControl-v2.0.0.apk" download>📱 Android APK</a>
+          <span>•</span>
+          <a href="./privacy.html" target="_blank" rel="noopener noreferrer">Privacy</a>
+        </div>
+      </div>
+    </aside>
+    </div>
 
     <!-- Bottom Live ATC Radio Strip -->
     <footer class="bottom-bar">
