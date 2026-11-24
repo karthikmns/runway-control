@@ -43,8 +43,8 @@ Your Play-ready signed bundle will be created at:
 - **Category:** `Games` → `Arcade` (or `Simulation`)
 - **Tags:** `Air traffic control`, `Aviation`, `Arcade`, `Strategy`, `Offline`, `Single player`
 - **Contact Email:** `karthikmns@gmail.com`
-- **Website:** `https://karthikmns.github.io/runway-control/`
-- **Privacy Policy URL:** `https://karthikmns.github.io/runway-control/privacy.html`
+- **Website:** `https://runwaycontrolgame.com/`
+- **Privacy Policy URL:** `https://runwaycontrolgame.com/privacy.html`
 
 ### Short Description (max 80 chars — 78 chars used)
 ```
@@ -87,7 +87,7 @@ KEY FEATURES
 
 ## 4. Google Play Console Declarations Checklist
 
-1. **App Content → Privacy Policy:** `https://karthikmns.github.io/runway-control/privacy.html`
+1. **App Content → Privacy Policy:** `https://runwaycontrolgame.com/privacy.html`
 2. **App Content → Ads:** **No, my app does not contain ads.**
 3. **App Content → App Access:** **All functionality is available without special access.**
 4. **App Content → Content Ratings (IARC):**
